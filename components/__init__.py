@@ -1,0 +1,1 @@
+"""AquaSentinel dashboard components."""
