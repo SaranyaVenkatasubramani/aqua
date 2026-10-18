@@ -1,55 +1,89 @@
 # AquaSentinel
 
-A Streamlit dashboard for visualizing the supplied municipal water-network
-readings, replaying causal leak scores, inspecting pressure nodes, and exploring
-label-derived leak episodes.
+**Catching water leaks early from sensor readings.** Team Quantiq, IBM Z Datathon 2026.
 
-## Run locally
+AquaSentinel learns what a normal day looks like for a water network (separate weekday and weekend profiles), turns the last 1, 6 and 24 hours of pressure and flow into change signals, and gives a leak probability for every 5-minute reading. An alert fires when the smoothed score stays high for an hour, and the dashboard points to the sensors with the largest pressure drop. The pipeline was run on an IBM LinuxONE (s390x) virtual server.
 
-Use Python 3.10 or newer. From the project root:
+![Architecture](docs/architecture.png)
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+## Results (2019 test year, never seen in training)
+
+Trained on 2018, tested on all 105,120 readings of 2019.
+
+| Metric | Value |
+|---|---|
+| Accuracy | 96.05% |
+| Precision | 96.60% |
+| Recall (leaks caught) | 98.60% |
+| F1-score | 97.59% |
+| ROC-AUC | 0.9909 |
+| PR-AUC | 0.9979 |
+
+Confusion matrix: 83,928 leaks caught, 1,194 missed, 2,956 false alarms, 17,042 correct no-leak. Top feature: `flow_mean_24h`.
+
+Notes: about 81% of 2019 readings are inside a leak, and the 2019 test has only two leaks (one lasts 273 days), so accuracy alone is easy to reach. Separately, the average AUC-PR over 6 time-based folds of 2018 is 0.84 (weakest fold 0.34, best 0.99). Quiet mode gives 15.5 false-alert hours a month, Sensitive mode 43.3.
+
+## IBM LinuxONE
+
+The project ran on an IBM LinuxONE Community Cloud virtual server: Ubuntu 24.04, 3 vCPU, 8 GB RAM, architecture `s390x`.
+
+![LinuxONE terminal](docs/linuxone-terminal.jpeg)
+
+Connect and run:
+
+```bash
+ssh -i key.pem linux1@<VM-IP>
+uname -m          # prints s390x
+```
+
+To view the dashboard from your laptop, open a tunnel in a second terminal and browse to http://localhost:8501:
+
+```bash
+ssh -L 8501:localhost:8501 -i key.pem linux1@<VM-IP>
+```
+
+## Run it
+
+Python 3.10 or newer.
+
+```bash
+git clone https://github.com/SaranyaVenkatasubramani/aqua.git
+cd aqua
+python3 -m venv .venv
+source .venv/bin/activate        # Windows: .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 python prepare_model.py
 python -m streamlit run app.py
 ```
 
-Open the local URL printed by Streamlit (normally `http://localhost:8501`).
-The supplied CSV is expected at `data\original aqua.csv`; the app also accepts
-`data\aquasentinal_dataset.csv` or `data\aquasentinel_dataset.csv`. A compatible
-CSV can also be loaded from the Home page's **Upload Data** control.
+Open http://localhost:8501. The data file is expected at `data/original aqua.csv`; a compatible CSV can also be loaded with **Upload Data** on the Home page.
 
-`prepare_model.py` creates `models\model.joblib`. The uploaded materials
-contained the 2018–2019 CSV and the source notebook, but not the notebook's
-serialized joblib bundle. The script therefore reproduces the notebook's final
-training recipe: fit weekday/weekend profiles on leak-free 2018 rows, construct
-the same backward-only feature set, fit the balanced
-`HistGradientBoostingClassifier` on 2018, and save its profiles/model/catalogue
-and clean-training residual scales in the inference bundle. If the model file
-is absent, the dashboard builds it on first launch; running the script first
-makes that work explicit.
+`prepare_model.py` creates `models/model.joblib`: it fits weekday/weekend profiles on leak-free 2018 rows, builds backward-only features, and fits a balanced `HistGradientBoostingClassifier` on 2018. If the model file is missing, the dashboard builds it on first launch.
 
 ## Dashboard pages
 
-- **Home** — network KPIs and entry points to the monitor and data uploader.
-- **Network** — schematic pressure-node map (33 channels in the supplied CSV),
-  anomaly highlighting, and selected-node
-  pressure compared with its expected weekday/weekend daily profile.
-- **Detect** — historical stream playback, pressure/flow chart with predicted
-  alert intervals, leak-probability gauge, and peer-normalized suspect ranking.
-- **Episodes** — `Leak_Status` runs merged across gaps shorter than one hour,
-  timeline, severity ranking, and CSV export.
-- **About** — pipeline, temporal-split explanation, 2019 holdout metrics, and
-  confusion matrix.
+- **Home**: network KPIs and the data uploader.
+- **Network**: schematic map of 33 pressure nodes, anomaly highlighting, observed vs expected pressure.
+- **Detect**: live replay of the sensor stream, pressure and flow chart, leak-probability gauge, top suspect sensors.
+- **Episodes**: leak episodes (runs merged across gaps under one hour), severity ranking, CSV export.
+- **About**: pipeline, train/test split, 2019 metrics and confusion matrix.
 
-The model's classifier features follow the notebook. Peer-normalized
-sensor-z-scores (with a 0.10 standard-deviation floor) are used for suspect
-ranking, not substituted for the notebook's profile-residual feature set.
-Water-saved volume is displayed as zero until repair/intervention telemetry is
-available; it is not inferred from sensor data alone.
+![Detect page](docs/dashboard-detect.jpeg)
+![Network page](docs/dashboard-network.jpeg)
 
-The dashboard caches its loaded dataset, trained model, engineered features,
-and scores in Streamlit's resource cache. Clear the app cache after replacing
-the CSV or model bundle.
+## Limits
+
+- The 2019 test has only two leaks, and one lasts 273 days.
+- Scores vary by period in 2018 (AUC-PR 0.34 to 0.99).
+- The sensor pointer shows where pressure dropped most, not a confirmed leak location.
+- Water saved is shown as zero until repair data is available.
+
+## Data and open-source tools
+
+- Data: BattLeDIM L-Town water network, 2018 to 2019 (https://github.com/BattLeDIM/BattLeDIM)
+- Python, pandas, NumPy, scikit-learn, joblib, Streamlit, Matplotlib, seaborn
+- Notebook: https://www.kaggle.com/code/dd1vya/aquasentinel
+
+## Team Quantiq
+
+Divya Lakshmi M, Divyadarshini M, Dharini S, Dhamini S, Saranya A V
