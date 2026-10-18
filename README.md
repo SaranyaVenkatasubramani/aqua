@@ -72,7 +72,7 @@ Open http://localhost:8501. The data file is expected at `data/original aqua.csv
 
 <img width="825" height="657" alt="dashboard-detect" src="https://github.com/user-attachments/assets/f89f27e5-03e1-4439-b46a-46090a0fd38c" />
 
-
+<img width="1518" height="725" alt="dashboard-network" src="https://github.com/user-attachments/assets/93a34d65-3308-4377-bb90-100f69bff58d" />
 
 
 ## Limits
