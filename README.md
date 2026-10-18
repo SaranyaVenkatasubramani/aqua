@@ -4,7 +4,8 @@
 
 AquaSentinel learns what a normal day looks like for a water network (separate weekday and weekend profiles), turns the last 1, 6 and 24 hours of pressure and flow into change signals, and gives a leak probability for every 5-minute reading. An alert fires when the smoothed score stays high for an hour, and the dashboard points to the sensors with the largest pressure drop. The pipeline was run on an IBM LinuxONE (s390x) virtual server.
 
-![Architecture](docs/architecture.png)
+
+<img width="3200" height="1800" alt="architecture" src="https://github.com/user-attachments/assets/1c01eb7e-03b7-4ebd-9e1e-b2ca1877faa1" />
 
 ## Results (2019 test year, never seen in training)
 
@@ -27,7 +28,8 @@ Notes: about 81% of 2019 readings are inside a leak, and the 2019 test has only 
 
 The project ran on an IBM LinuxONE Community Cloud virtual server: Ubuntu 24.04, 3 vCPU, 8 GB RAM, architecture `s390x`.
 
-![LinuxONE terminal](docs/linuxone-terminal.jpeg)
+
+
 
 Connect and run:
 
@@ -68,8 +70,10 @@ Open http://localhost:8501. The data file is expected at `data/original aqua.csv
 - **Episodes**: leak episodes (runs merged across gaps under one hour), severity ranking, CSV export.
 - **About**: pipeline, train/test split, 2019 metrics and confusion matrix.
 
-![Detect page](docs/dashboard-detect.jpeg)
-![Network page](docs/dashboard-network.jpeg)
+<img width="825" height="657" alt="dashboard-detect" src="https://github.com/user-attachments/assets/f89f27e5-03e1-4439-b46a-46090a0fd38c" />
+
+
+
 
 ## Limits
 
